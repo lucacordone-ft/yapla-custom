@@ -1,0 +1,115 @@
+<script>
+  (function () {
+    if (window.__fratMilanoCdnLoaderInitialized) {
+      return;
+    }
+    window.__fratMilanoCdnLoaderInitialized = true;
+
+    var BASE_URL = "https://cdn.jsdelivr.net/gh/lucacordone-ft/yapla-custom@main/yapla";
+    var CACHE_BUSTER = String(Date.now());
+    var HTML_URL = BASE_URL + "/fraternita-milano.html?v=" + encodeURIComponent(CACHE_BUSTER);
+    var CSS_URL = BASE_URL + "/fraternita-milano.css?v=" + encodeURIComponent(CACHE_BUSTER);
+    var JS_URL = BASE_URL + "/fraternita-milano.js?v=" + encodeURIComponent(CACHE_BUSTER);
+    var STYLE_ID = "frat-milano-cdn-style";
+    var SCRIPT_ID = "frat-milano-cdn-script";
+    var MOUNT_ID = "frat-milano-cdn-mount";
+
+    function onReady(callback) {
+      if (document.readyState === "loading") {
+        document.addEventListener("DOMContentLoaded", callback, { once: true });
+        return;
+      }
+
+      callback();
+    }
+
+    function ensureStylesheet() {
+      var existing = document.getElementById(STYLE_ID);
+      if (existing) {
+        if (existing.href !== CSS_URL) {
+          existing.href = CSS_URL;
+        }
+        return;
+      }
+
+      var link = document.createElement("link");
+      link.id = STYLE_ID;
+      link.rel = "stylesheet";
+      link.href = CSS_URL;
+      document.head.appendChild(link);
+    }
+
+    function findNativeDonationLine() {
+      var paymentRoot = document.querySelector(".single-page-donation-wrapper");
+      if (paymentRoot) {
+        return paymentRoot.closest(".line.site_line__item") || paymentRoot.closest(".line");
+      }
+
+      return document.querySelector(".line.site_line__item");
+    }
+
+    function ensureMount() {
+      var existing = document.getElementById(MOUNT_ID);
+      if (existing) {
+        return existing;
+      }
+
+      var mountLine = document.createElement("div");
+      mountLine.id = MOUNT_ID;
+      mountLine.className = "line site_line__item";
+
+      var container = document.createElement("div");
+      container.className = "container";
+      mountLine.appendChild(container);
+
+      var nativeLine = findNativeDonationLine();
+      if (nativeLine && nativeLine.parentNode) {
+        nativeLine.parentNode.insertBefore(mountLine, nativeLine);
+        return mountLine;
+      }
+
+      (document.body || document.documentElement).appendChild(mountLine);
+      return mountLine;
+    }
+
+    function mountHtml(markup) {
+      var mount = ensureMount();
+      var container = mount.querySelector(".container") || mount;
+      container.innerHTML = markup;
+    }
+
+    function loadScript() {
+      var existing = document.getElementById(SCRIPT_ID);
+      if (existing && existing.parentNode) {
+        existing.parentNode.removeChild(existing);
+      }
+
+      var script = document.createElement("script");
+      script.id = SCRIPT_ID;
+      script.src = JS_URL;
+      script.async = false;
+      document.body.appendChild(script);
+    }
+
+    function bootstrap() {
+      ensureStylesheet();
+
+      fetch(HTML_URL, { cache: "no-store" })
+        .then(function (response) {
+          if (!response.ok) {
+            throw new Error("HTTP " + response.status);
+          }
+          return response.text();
+        })
+        .then(function (markup) {
+          mountHtml(markup);
+          loadScript();
+        })
+        .catch(function (error) {
+          console.error("[Fraternita Milano] Caricamento asset fallito:", error);
+        });
+    }
+
+    onReady(bootstrap);
+  })();
+</script>
