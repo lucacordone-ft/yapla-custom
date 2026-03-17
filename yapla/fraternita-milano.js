@@ -1443,6 +1443,7 @@
 
     function bindUi() {
         bindOriginalTipFields();
+        var tipCustomInput = query('#frat-app #frat-tip-custom-input');
 
         queryAll('#frat-app [data-step-next]').forEach(function (button) {
             if (button.getAttribute('data-step-next') === '1') {
@@ -1536,7 +1537,7 @@
 
         function toggleTipEditor() {
             var tipBox = query('#frat-tip');
-            var tipInput = query('#frat-tip-custom-input');
+            var tipInput = tipCustomInput;
             if (tipBox) {
                 tipBox.classList.toggle('is-editing');
             }
@@ -1556,16 +1557,36 @@
             query('#frat-tip').classList.remove('is-editing');
         });
 
-        query('#frat-app #frat-tip-custom-input').addEventListener("input", function (event) {
-            var nextValue = parseAmount(event.target.value);
-            setTipAmount(nextValue === null ? 0 : nextValue);
-        });
+        if (tipCustomInput) {
+            tipCustomInput.addEventListener("input", function (event) {
+                var nextValue = parseAmount(event.target.value);
+                setTipAmount(nextValue === null ? 0 : nextValue);
+            });
 
-        query('#frat-app #frat-tip-custom-input').addEventListener("keydown", function (event) {
-            if (event.key === "Enter") {
-                event.preventDefault();
-                query('#frat-tip').classList.remove('is-editing');
+            tipCustomInput.addEventListener("keydown", function (event) {
+                if (event.key === "Enter") {
+                    event.preventDefault();
+                    query('#frat-tip').classList.remove('is-editing');
+                }
+            });
+        } else {
+            queryAll('#frat-tip-editor .frat-tip__option').forEach(function (button) {
+                button.addEventListener("click", function () {
+                    setTipAmount(button.getAttribute('data-tip-value'));
+                    query('#frat-tip').classList.remove('is-editing');
+                });
+            });
+        }
+
+        document.addEventListener("click", function (event) {
+            var tipBox = query('#frat-tip');
+            if (!tipBox || !tipBox.classList.contains('is-editing')) {
+                return;
             }
+            if (tipBox.contains(event.target)) {
+                return;
+            }
+            tipBox.classList.remove('is-editing');
         });
 
         ["frat-firstname", "frat-lastname", "frat-email"].forEach(function (id) {
