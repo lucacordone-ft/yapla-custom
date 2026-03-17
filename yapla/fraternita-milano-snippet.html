@@ -11,6 +11,7 @@
     var HTML_URL = BASE_URL + "/fraternita-milano.html?v=" + encodeURIComponent(CACHE_BUSTER);
     var CSS_URL = BASE_URL + "/fraternita-milano.css?v=" + encodeURIComponent(CACHE_BUSTER);
     var JS_URL = BASE_URL + "/fraternita-milano.js?v=" + encodeURIComponent(CACHE_BUSTER);
+    var BOOT_CLASS = "frat-booting";
     var INLINE_STYLE_ID = "frat-milano-critical-style";
     var STYLE_ID = "frat-milano-cdn-style";
     var SCRIPT_ID = "frat-milano-cdn-script";
@@ -27,6 +28,14 @@
     }
 
     function applyImmediateState() {
+      document.documentElement.classList.add(BOOT_CLASS);
+
+      function applyBodyState() {
+        if (document.body) {
+          document.body.classList.add("frat-donation-page", "frat-is-loading");
+        }
+      }
+
       try {
         if (window.sessionStorage && window.sessionStorage.getItem("frat_payment_loader_pending") === "1") {
           document.documentElement.classList.add("frat-payment-nav-pending");
@@ -35,8 +44,11 @@
       }
 
       if (document.body) {
-        document.body.classList.add("frat-donation-page", "frat-is-loading");
+        applyBodyState();
+        return;
       }
+
+      document.addEventListener("DOMContentLoaded", applyBodyState, { once: true });
     }
 
     function ensureCriticalStyles() {
@@ -47,6 +59,8 @@
       var style = document.createElement("style");
       style.id = INLINE_STYLE_ID;
       style.textContent = [
+        "html." + BOOT_CLASS + ",html." + BOOT_CLASS + " body{background:radial-gradient(circle at top left, rgba(237,178,80,.12), transparent 28%),radial-gradient(circle at top right, rgba(35,105,176,.12), transparent 30%),linear-gradient(180deg,#f8fbff 0%,#ffffff 40%,#f8fafc 100%)!important;}",
+        "html." + BOOT_CLASS + " #site-wrapper,html." + BOOT_CLASS + " .poweredBy-wrapper{opacity:0!important;visibility:hidden!important;pointer-events:none!important;}",
         "body.frat-donation-page{padding:0!important;overflow-x:hidden;background:radial-gradient(circle at top left, rgba(237,178,80,.12), transparent 28%),radial-gradient(circle at top right, rgba(35,105,176,.12), transparent 30%),linear-gradient(180deg,#f8fbff 0%,#ffffff 40%,#f8fafc 100%);}",
         "body.frat-donation-page.frat-is-loading{overflow:hidden;}",
         "#frat-loader{position:fixed;inset:0;z-index:9999;display:flex;align-items:center;justify-content:center;background:radial-gradient(circle at top left, rgba(237,178,80,.14), transparent 26%),radial-gradient(circle at top right, rgba(35,105,176,.14), transparent 28%),linear-gradient(180deg,rgba(248,251,255,.98) 0%,rgba(255,255,255,.98) 42%,rgba(248,250,252,.98) 100%);}",
@@ -58,6 +72,34 @@
         "@keyframes frat-loader-spin{to{transform:rotate(360deg)}}"
       ].join("");
       document.head.appendChild(style);
+    }
+
+    function createLoaderNode() {
+      var loader = document.createElement("div");
+      loader.id = "frat-loader";
+      loader.className = "frat-loader frat-loader--initial";
+      loader.setAttribute("aria-hidden", "true");
+      loader.innerHTML = [
+        '<div class="frat-loader__inner">',
+        '  <img class="frat-loader__logo" src="' + LOGO_URL + '" alt="Fraternita">',
+        '  <div class="frat-loader__spinner"></div>',
+        "</div>"
+      ].join("");
+      return loader;
+    }
+
+    function ensureImmediateLoader() {
+      var existing = document.getElementById("frat-loader");
+      var parent;
+
+      if (existing) {
+        return existing;
+      }
+
+      parent = document.body || document.documentElement;
+      existing = createLoaderNode();
+      parent.appendChild(existing);
+      return existing;
     }
 
     function ensureStylesheet() {
@@ -87,6 +129,7 @@
 
     function ensureShell() {
       var existing = document.getElementById(SHELL_ID);
+      var loader;
       if (existing) {
         return existing;
       }
@@ -97,15 +140,11 @@
 
       var container = document.createElement("div");
       container.className = "container";
-      container.innerHTML = [
-        '<div id="frat-loader" class="frat-loader frat-loader--initial" aria-hidden="true">',
-        '  <div class="frat-loader__inner">',
-        '    <img class="frat-loader__logo" src="' + LOGO_URL + '" alt="Fraternita">',
-        '    <div class="frat-loader__spinner"></div>',
-        "  </div>",
-        "</div>",
-        '<div id="' + MOUNT_ID + '"></div>'
-      ].join("");
+      container.innerHTML = '<div id="' + MOUNT_ID + '"></div>';
+      loader = ensureImmediateLoader();
+      if (loader && loader.parentNode !== container) {
+        container.insertBefore(loader, container.firstChild);
+      }
       shellLine.appendChild(container);
 
       var nativeLine = findNativeDonationLine();
@@ -121,8 +160,18 @@
     function mountHtml(markup) {
       var shell = ensureShell();
       var mount = shell.querySelector("#" + MOUNT_ID);
+      var temp;
+      var nestedLoader;
       if (mount) {
-        mount.innerHTML = markup;
+        temp = document.createElement("div");
+        temp.innerHTML = markup;
+
+        nestedLoader = temp.querySelector("#frat-loader");
+        if (nestedLoader) {
+          nestedLoader.parentNode.removeChild(nestedLoader);
+        }
+
+        mount.innerHTML = temp.innerHTML;
       }
     }
 
@@ -139,28 +188,33 @@
       document.body.appendChild(script);
     }
 
-    function bootstrap() {
-      applyImmediateState();
-      ensureCriticalStyles();
+    function bootstrap(markup) {
       ensureShell();
       ensureStylesheet();
-
-      fetch(HTML_URL, { cache: "no-store" })
-        .then(function (response) {
-          if (!response.ok) {
-            throw new Error("HTTP " + response.status);
-          }
-          return response.text();
-        })
-        .then(function (markup) {
-          mountHtml(markup);
-          loadScript();
-        })
-        .catch(function (error) {
-          console.error("[Fraternita Milano] Caricamento asset fallito:", error);
-        });
+      mountHtml(markup);
+      loadScript();
+      document.documentElement.classList.remove(BOOT_CLASS);
     }
 
-    onReady(bootstrap);
+    applyImmediateState();
+    ensureCriticalStyles();
+    ensureImmediateLoader();
+
+    fetch(HTML_URL, { cache: "no-store" })
+      .then(function (response) {
+        if (!response.ok) {
+          throw new Error("HTTP " + response.status);
+        }
+        return response.text();
+      })
+      .then(function (markup) {
+        onReady(function () {
+          bootstrap(markup);
+        });
+      })
+      .catch(function (error) {
+        document.documentElement.classList.remove(BOOT_CLASS);
+        console.error("[Fraternita Milano] Caricamento asset fallito:", error);
+      });
   })();
 </script>
