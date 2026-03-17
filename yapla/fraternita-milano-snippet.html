@@ -195,6 +195,22 @@
       document.body.appendChild(script);
     }
 
+    function failBoot(error) {
+      var loader = document.getElementById("frat-loader");
+
+      document.documentElement.classList.remove(BOOT_CLASS);
+
+      if (document.body) {
+        document.body.classList.remove("frat-is-loading");
+      }
+
+      if (loader) {
+        loader.classList.add("is-hidden");
+      }
+
+      console.error("[Fraternita Milano] Caricamento asset fallito:", error);
+    }
+
     function bootstrap(markup) {
       ensureShell();
       ensureStylesheet();
@@ -219,9 +235,6 @@
           bootstrap(markup);
         });
       })
-      .catch(function (error) {
-        document.documentElement.classList.remove(BOOT_CLASS);
-        console.error("[Fraternita Milano] Caricamento asset fallito:", error);
-      });
+      .catch(failBoot);
   })();
 </script>
