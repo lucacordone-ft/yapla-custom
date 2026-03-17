@@ -5,18 +5,35 @@
     }
     window.__fratMilanoCdnLoaderInitialized = true;
 
-    var ASSET_COMMIT_SHA = "54cbcf8fd0ba60d45795c78cb38c112da79531a5";
-    var BASE_URL = "https://cdn.jsdelivr.net/gh/lucacordone-ft/yapla-custom@" + ASSET_COMMIT_SHA + "/yapla";
+    var REPO_SLUG = "lucacordone-ft/yapla-custom";
+    var VERSION_FILE_URL = "https://raw.githubusercontent.com/" + REPO_SLUG + "/main/yapla/fraternita-milano.version.json";
+    var FALLBACK_COMMIT_SHA = "54cbcf8fd0ba60d45795c78cb38c112da79531a5";
+    var versionRequestToken = String(Date.now());
+    var assetUrls = buildAssetUrls(FALLBACK_COMMIT_SHA);
     var LOGO_URL = "https://cdn.eu.yapla.com/company/CPYlrqE5JMgiN9xHsKemXuGLB/asset/images/LogoFraternita.svg";
-    var HTML_URL = BASE_URL + "/fraternita-milano.html";
-    var CSS_URL = BASE_URL + "/fraternita-milano.css";
-    var JS_URL = BASE_URL + "/fraternita-milano.js";
     var BOOT_CLASS = "frat-booting";
     var INLINE_STYLE_ID = "frat-milano-critical-style";
     var STYLE_ID = "frat-milano-cdn-style";
     var SCRIPT_ID = "frat-milano-cdn-script";
     var SHELL_ID = "frat-milano-shell";
     var MOUNT_ID = "frat-milano-app-mount";
+
+    function buildAssetUrls(commitSha) {
+      var safeCommitSha = typeof commitSha === "string" ? commitSha.trim() : "";
+      var baseUrl = "https://cdn.jsdelivr.net/gh/" + REPO_SLUG + "@" + safeCommitSha + "/yapla";
+
+      return {
+        commitSha: safeCommitSha,
+        baseUrl: baseUrl,
+        htmlUrl: baseUrl + "/fraternita-milano.html",
+        cssUrl: baseUrl + "/fraternita-milano.css",
+        jsUrl: baseUrl + "/fraternita-milano.js"
+      };
+    }
+
+    function isValidCommitSha(value) {
+      return /^[0-9a-f]{40}$/.test(String(value || "").trim());
+    }
 
     function onReady(callback) {
       if (document.readyState === "loading") {
@@ -105,8 +122,8 @@
     function ensureStylesheet() {
       var existing = document.getElementById(STYLE_ID);
       if (existing) {
-        if (existing.href !== CSS_URL) {
-          existing.href = CSS_URL;
+        if (existing.href !== assetUrls.cssUrl) {
+          existing.href = assetUrls.cssUrl;
         }
         return;
       }
@@ -114,7 +131,7 @@
       var link = document.createElement("link");
       link.id = STYLE_ID;
       link.rel = "stylesheet";
-      link.href = CSS_URL;
+      link.href = assetUrls.cssUrl;
       document.head.appendChild(link);
     }
 
@@ -183,9 +200,32 @@
 
       var script = document.createElement("script");
       script.id = SCRIPT_ID;
-      script.src = JS_URL;
+      script.src = assetUrls.jsUrl;
       script.async = false;
       document.body.appendChild(script);
+    }
+
+    function resolveAssetUrls() {
+      return fetch(VERSION_FILE_URL + "?v=" + encodeURIComponent(versionRequestToken), { cache: "no-store" })
+        .then(function (response) {
+          if (!response.ok) {
+            throw new Error("HTTP " + response.status);
+          }
+          return response.json();
+        })
+        .then(function (payload) {
+          var nextCommitSha = payload && payload.assetCommitSha;
+
+          if (!isValidCommitSha(nextCommitSha)) {
+            throw new Error("Commit SHA non valido nel version file");
+          }
+
+          assetUrls = buildAssetUrls(nextCommitSha);
+        })
+        .catch(function (error) {
+          assetUrls = buildAssetUrls(FALLBACK_COMMIT_SHA);
+          console.warn("[Fraternita Milano] Version file non disponibile, uso fallback:", error);
+        });
     }
 
     function bootstrap(markup) {
@@ -200,7 +240,10 @@
     ensureCriticalStyles();
     ensureImmediateLoader();
 
-    fetch(HTML_URL, { cache: "no-store" })
+    resolveAssetUrls()
+      .then(function () {
+        return fetch(assetUrls.htmlUrl, { cache: "no-store" });
+      })
       .then(function (response) {
         if (!response.ok) {
           throw new Error("HTTP " + response.status);
