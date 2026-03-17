@@ -6,10 +6,10 @@
     window.__fratMilanoCdnLoaderInitialized = true;
 
     var REPO_SLUG = "lucacordone-ft/yapla-custom";
-    var VERSION_FILE_URL = "https://raw.githubusercontent.com/" + REPO_SLUG + "/main/yapla/fraternita-milano.version.json";
-    var FALLBACK_COMMIT_SHA = "54cbcf8fd0ba60d45795c78cb38c112da79531a5";
+    var FALLBACK_COMMIT_SHA = "c6812e521d977f2a6e40f697f5870b891c1f4551";
+    var COMMIT_CACHE_KEY = "frat_milano_asset_commit_sha";
     var versionRequestToken = String(Date.now());
-    var assetUrls = buildAssetUrls(FALLBACK_COMMIT_SHA);
+    var assetUrls = buildAssetUrls(readCachedCommitSha() || FALLBACK_COMMIT_SHA);
     var LOGO_URL = "https://cdn.eu.yapla.com/company/CPYlrqE5JMgiN9xHsKemXuGLB/asset/images/LogoFraternita.svg";
     var BOOT_CLASS = "frat-booting";
     var INLINE_STYLE_ID = "frat-milano-critical-style";
@@ -33,6 +33,68 @@
 
     function isValidCommitSha(value) {
       return /^[0-9a-f]{40}$/.test(String(value || "").trim());
+    }
+
+    function buildVersionFileUrls() {
+      return [
+        "https://raw.githubusercontent.com/" + REPO_SLUG + "/main/yapla/fraternita-milano.version.json?v=" + encodeURIComponent(versionRequestToken),
+        "https://cdn.jsdelivr.net/gh/" + REPO_SLUG + "@main/yapla/fraternita-milano.version.json?v=" + encodeURIComponent(versionRequestToken)
+      ];
+    }
+
+    function readCachedCommitSha() {
+      try {
+        if (!window.localStorage) {
+          return "";
+        }
+        return window.localStorage.getItem(COMMIT_CACHE_KEY) || "";
+      } catch (_error) {
+        return "";
+      }
+    }
+
+    function writeCachedCommitSha(commitSha) {
+      if (!isValidCommitSha(commitSha)) {
+        return;
+      }
+
+      try {
+        if (!window.localStorage) {
+          return;
+        }
+        window.localStorage.setItem(COMMIT_CACHE_KEY, commitSha);
+      } catch (_error) {
+      }
+    }
+
+    function fetchVersionPayload(url) {
+      return fetch(url, { cache: "no-store" })
+        .then(function (response) {
+          if (!response.ok) {
+            throw new Error("HTTP " + response.status);
+          }
+          return response.json();
+        });
+    }
+
+    function resolveCommitFromPayload(payload) {
+      var nextCommitSha = payload && payload.assetCommitSha;
+
+      if (!isValidCommitSha(nextCommitSha)) {
+        throw new Error("Commit SHA non valido nel version file");
+      }
+
+      return nextCommitSha;
+    }
+
+    function tryVersionFileUrls(urls, index, lastError) {
+      if (index >= urls.length) {
+        return Promise.reject(lastError || new Error("Version file non disponibile"));
+      }
+
+      return fetchVersionPayload(urls[index]).catch(function (error) {
+        return tryVersionFileUrls(urls, index + 1, error);
+      });
     }
 
     function onReady(callback) {
@@ -206,25 +268,19 @@
     }
 
     function resolveAssetUrls() {
-      return fetch(VERSION_FILE_URL + "?v=" + encodeURIComponent(versionRequestToken), { cache: "no-store" })
-        .then(function (response) {
-          if (!response.ok) {
-            throw new Error("HTTP " + response.status);
-          }
-          return response.json();
-        })
+      return tryVersionFileUrls(buildVersionFileUrls(), 0)
         .then(function (payload) {
-          var nextCommitSha = payload && payload.assetCommitSha;
+          var nextCommitSha = resolveCommitFromPayload(payload);
 
-          if (!isValidCommitSha(nextCommitSha)) {
-            throw new Error("Commit SHA non valido nel version file");
-          }
-
+          writeCachedCommitSha(nextCommitSha);
           assetUrls = buildAssetUrls(nextCommitSha);
         })
         .catch(function (error) {
-          assetUrls = buildAssetUrls(FALLBACK_COMMIT_SHA);
-          console.warn("[Fraternita Milano] Version file non disponibile, uso fallback:", error);
+          var cachedCommitSha = readCachedCommitSha();
+          var fallbackCommitSha = isValidCommitSha(cachedCommitSha) ? cachedCommitSha : FALLBACK_COMMIT_SHA;
+
+          assetUrls = buildAssetUrls(fallbackCommitSha);
+          console.warn("[Fraternita Milano] Version file non disponibile, uso fallback sicuro:", error);
         });
     }
 
