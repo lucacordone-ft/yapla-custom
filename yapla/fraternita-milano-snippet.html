@@ -5,12 +5,12 @@
     }
     window.__fratMilanoCdnLoaderInitialized = true;
 
-    var BASE_URL = "https://cdn.jsdelivr.net/gh/lucacordone-ft/yapla-custom@main/yapla";
-    var CACHE_BUSTER = String(Date.now());
+    var ASSET_COMMIT_SHA = "78c11ae68eead427cd04ee72cc7f29532967209e";
+    var BASE_URL = "https://cdn.jsdelivr.net/gh/lucacordone-ft/yapla-custom@" + ASSET_COMMIT_SHA + "/yapla";
     var LOGO_URL = "https://cdn.eu.yapla.com/company/CPYlrqE5JMgiN9xHsKemXuGLB/asset/images/LogoFraternita.svg";
-    var HTML_URL = BASE_URL + "/fraternita-milano.html?v=" + encodeURIComponent(CACHE_BUSTER);
-    var CSS_URL = BASE_URL + "/fraternita-milano.css?v=" + encodeURIComponent(CACHE_BUSTER);
-    var JS_URL = BASE_URL + "/fraternita-milano.js?v=" + encodeURIComponent(CACHE_BUSTER);
+    var HTML_URL = BASE_URL + "/fraternita-milano.html";
+    var CSS_URL = BASE_URL + "/fraternita-milano.css";
+    var JS_URL = BASE_URL + "/fraternita-milano.js";
     var BOOT_CLASS = "frat-booting";
     var INLINE_STYLE_ID = "frat-milano-critical-style";
     var STYLE_ID = "frat-milano-cdn-style";
