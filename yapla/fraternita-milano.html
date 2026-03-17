@@ -1,0 +1,171 @@
+<div id="frat-loader" class="frat-loader frat-loader--initial" aria-hidden="true">
+    <div class="frat-loader__inner">
+        <img class="frat-loader__logo"
+            src="https://cdn.eu.yapla.com/company/CPYlrqE5JMgiN9xHsKemXuGLB/asset/images/LogoFraternita.svg"
+            alt="Fraternita">
+        <div class="frat-loader__spinner"></div>
+    </div>
+</div>
+
+<div id="frat-app">
+    <div class="frat-shell">
+        <div class="frat-brand">
+            <img src="https://cdn.eu.yapla.com/company/CPYlrqE5JMgiN9xHsKemXuGLB/asset/images/LogoFraternita.svg"
+                alt="Fraternita">
+        </div>
+
+        <section class="frat-hero">
+            <h1>Dona per Fraternità Milano</h1>
+            <p>La donazione sara gestita da Associazione Fraternità Ft APS e, su richiesta, sara rilasciata regolare
+                ricevuta.
+            </p>
+        </section>
+
+        <div class="frat-flow">
+            <section class="frat-card is-active" data-step-panel="0">
+                <div class="frat-card__eyebrow">1. Importo</div>
+                <h2>Quanto vuoi donare?</h2>
+
+                <div class="frat-stack">
+                    <div class="frat-field">
+                        <label>Importo</label>
+                        <div class="frat-options frat-option-grid-2">
+                            <div class="frat-option">
+                                <input id="frat-donation_choice_id-0" name="frat_donation_choice_id" type="radio"
+                                    value="">
+                                <label for="frat-donation_choice_id-0">€ 6,00</label>
+                            </div>
+                            <div class="frat-option">
+                                <input id="frat-donation_choice_id-1" name="frat_donation_choice_id" type="radio"
+                                    value="other">
+                                <label for="frat-donation_choice_id-1">Altro importo</label>
+                            </div>
+                        </div>
+                        <div class="frat-field__error" data-frat-error-for="donation"></div>
+                    </div>
+
+                    <div class="frat-field" id="frat-custom-amount-field">
+                        <label for="frat-custom_amount">Importo libero</label>
+                        <div class="frat-input-wrap">
+                            <input id="frat-custom_amount" class="frat-input" type="text" name="amount"
+                                inputmode="decimal" autocomplete="off" placeholder="Inserisci l'importo">
+                        </div>
+                        <div class="frat-field__error" data-frat-error-for="custom_amount"></div>
+                    </div>
+
+                    <div class="frat-card__footer">
+                        <div class="frat-card__footer-actions">
+                            <button id="frat-step-amount-next" class="frat-step-button frat-step-button--next"
+                                type="button" data-step-next="1">Continua</button>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <section class="frat-card" data-step-panel="1">
+                <div class="frat-card__eyebrow">2. Dati</div>
+                <h2>I tuoi dati</h2>
+
+                <div class="frat-stack">
+                    <div class="frat-grid-2">
+                        <div class="frat-field">
+                            <label for="frat-firstname">Nome</label>
+                            <input id="frat-firstname" class="frat-input" type="text" name="given-name"
+                                autocomplete="section-donation given-name" placeholder="Mario">
+                            <div class="frat-field__error" data-frat-error-for="firstname"></div>
+                        </div>
+                        <div class="frat-field">
+                            <label for="frat-lastname">Cognome</label>
+                            <input id="frat-lastname" class="frat-input" type="text" name="family-name"
+                                autocomplete="section-donation family-name" placeholder="Rossi">
+                            <div class="frat-field__error" data-frat-error-for="lastname"></div>
+                        </div>
+                    </div>
+
+                    <div class="frat-field">
+                        <label for="frat-email">Email</label>
+                        <input id="frat-email" class="frat-input" type="email" name="email"
+                            autocomplete="section-donation email" autocapitalize="off" spellcheck="false"
+                            placeholder="nome@email.it">
+                        <div class="frat-field__error" data-frat-error-for="email"></div>
+                    </div>
+
+                    <div class="frat-card__footer">
+                        <div class="frat-card__footer-actions">
+                            <button class="frat-step-button" type="button" data-step-prev="0">Indietro</button>
+                            <button id="frat-step-donor-next" class="frat-step-button frat-step-button--next"
+                                type="button" data-step-next="2">Continua</button>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <section class="frat-card" data-step-panel="2">
+                <div class="frat-card__eyebrow">3. Pagamento</div>
+                <h2>Conferma e procedi</h2>
+
+                <div class="frat-stack">
+                    <div id="frat-tip" class="frat-tip">
+                        <div class="frat-tip__layout">
+                            <div class="frat-tip__title">Contributo suggerito</div>
+                            <div class="frat-tip__note">
+                                Contribuisci a sostenere <strong>Yapla</strong> e a coprire parte dei <strong>costi di
+                                    gestione della
+                                    transazione</strong>.
+                            </div>
+                            <div class="frat-tip__amount-wrap">
+                                <strong id="frat-tip-amount" class="frat-tip__amount">€ 1,40</strong>
+                            </div>
+                            <div class="frat-tip__actions">
+                                <button id="frat-tip-edit" class="frat-tip__action frat-tip__edit" type="button"
+                                    aria-label="Modifica contributo">
+                                    <span class="frat-tip__edit-icon" aria-hidden="true">
+                                        <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round"
+                                            stroke-linejoin="round">
+                                            <path d="M12 20h9" />
+                                            <path d="m16.5 3.5 4 4L8 20l-5 1 1-5Z" />
+                                        </svg>
+                                    </span>
+                                    <span class="frat-tip__remove-text">Modifica</span>
+                                </button>
+                                <button id="frat-tip-remove" class="frat-tip__action frat-tip__remove" type="button"
+                                    aria-label="Rimuovi contributo">
+                                    <span class="frat-tip__remove-icon" aria-hidden="true"></span>
+                                    <span class="frat-tip__remove-text">Rimuovi</span>
+                                </button>
+                            </div>
+                        </div>
+                        <div id="frat-tip-editor" class="frat-tip__editor">
+                            <button class="frat-tip__option" type="button" data-tip-value="1">€ 1,00</button>
+                            <button class="frat-tip__option is-active" type="button" data-tip-value="1.4">€
+                                1,40</button>
+                            <button class="frat-tip__option" type="button" data-tip-value="1.8">€ 1,80</button>
+                            <button class="frat-tip__option" type="button" data-tip-value="0">Rimuovi</button>
+                        </div>
+                    </div>
+
+                    <div class="frat-summary">
+                        <div>
+                            <div class="frat-summary__label">Importo totale</div>
+                        </div>
+                        <div class="frat-summary__amount" id="frat-summary-amount">€ 0,00</div>
+                    </div>
+
+                    <div class="frat-actions">
+                        <div id="frat-error" class="frat-error" aria-live="polite"></div>
+                        <div class="frat-card__footer">
+                            <div class="frat-card__footer-actions">
+                                <button class="frat-step-button" type="button" data-step-prev="1">Indietro</button>
+                                <button id="frat-submit" class="frat-button" type="button">Procedi al pagamento</button>
+                            </div>
+                        </div>
+                        <div class="frat-note">
+                            <span class="frat-note__lock" aria-hidden="true"></span>
+                            <span>Pagamento sicuro, gestito da Yapla tramite Stripe.</span>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </div>
+    </div>
+</div>
