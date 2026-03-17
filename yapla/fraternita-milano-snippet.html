@@ -7,12 +7,15 @@
 
     var BASE_URL = "https://cdn.jsdelivr.net/gh/lucacordone-ft/yapla-custom@main/yapla";
     var CACHE_BUSTER = String(Date.now());
+    var LOGO_URL = "https://cdn.eu.yapla.com/company/CPYlrqE5JMgiN9xHsKemXuGLB/asset/images/LogoFraternita.svg";
     var HTML_URL = BASE_URL + "/fraternita-milano.html?v=" + encodeURIComponent(CACHE_BUSTER);
     var CSS_URL = BASE_URL + "/fraternita-milano.css?v=" + encodeURIComponent(CACHE_BUSTER);
     var JS_URL = BASE_URL + "/fraternita-milano.js?v=" + encodeURIComponent(CACHE_BUSTER);
+    var INLINE_STYLE_ID = "frat-milano-critical-style";
     var STYLE_ID = "frat-milano-cdn-style";
     var SCRIPT_ID = "frat-milano-cdn-script";
-    var MOUNT_ID = "frat-milano-cdn-mount";
+    var SHELL_ID = "frat-milano-shell";
+    var MOUNT_ID = "frat-milano-app-mount";
 
     function onReady(callback) {
       if (document.readyState === "loading") {
@@ -21,6 +24,40 @@
       }
 
       callback();
+    }
+
+    function applyImmediateState() {
+      try {
+        if (window.sessionStorage && window.sessionStorage.getItem("frat_payment_loader_pending") === "1") {
+          document.documentElement.classList.add("frat-payment-nav-pending");
+        }
+      } catch (_error) {
+      }
+
+      if (document.body) {
+        document.body.classList.add("frat-donation-page", "frat-is-loading");
+      }
+    }
+
+    function ensureCriticalStyles() {
+      if (document.getElementById(INLINE_STYLE_ID)) {
+        return;
+      }
+
+      var style = document.createElement("style");
+      style.id = INLINE_STYLE_ID;
+      style.textContent = [
+        "body.frat-donation-page{padding:0!important;overflow-x:hidden;background:radial-gradient(circle at top left, rgba(237,178,80,.12), transparent 28%),radial-gradient(circle at top right, rgba(35,105,176,.12), transparent 30%),linear-gradient(180deg,#f8fbff 0%,#ffffff 40%,#f8fafc 100%);}",
+        "body.frat-donation-page.frat-is-loading{overflow:hidden;}",
+        "#frat-loader{position:fixed;inset:0;z-index:9999;display:flex;align-items:center;justify-content:center;background:radial-gradient(circle at top left, rgba(237,178,80,.14), transparent 26%),radial-gradient(circle at top right, rgba(35,105,176,.14), transparent 28%),linear-gradient(180deg,rgba(248,251,255,.98) 0%,rgba(255,255,255,.98) 42%,rgba(248,250,252,.98) 100%);}",
+        "#frat-loader .frat-loader__inner{display:grid;justify-items:center;gap:20px;}",
+        "#frat-loader .frat-loader__logo{display:block;width:auto;max-width:min(68vw,260px);min-height:40px;max-height:68px;height:auto;}",
+        "#frat-loader .frat-loader__spinner{width:34px;height:34px;border-radius:999px;border:3px solid rgba(35,105,176,.14);border-top-color:#2369b0;animation:frat-loader-spin 900ms linear infinite;}",
+        "#frat-milano-shell{position:relative;z-index:1;}",
+        "#frat-milano-app-mount:empty{min-height:1px;}",
+        "@keyframes frat-loader-spin{to{transform:rotate(360deg)}}"
+      ].join("");
+      document.head.appendChild(style);
     }
 
     function ensureStylesheet() {
@@ -48,34 +85,45 @@
       return document.querySelector(".line.site_line__item");
     }
 
-    function ensureMount() {
-      var existing = document.getElementById(MOUNT_ID);
+    function ensureShell() {
+      var existing = document.getElementById(SHELL_ID);
       if (existing) {
         return existing;
       }
 
-      var mountLine = document.createElement("div");
-      mountLine.id = MOUNT_ID;
-      mountLine.className = "line site_line__item";
+      var shellLine = document.createElement("div");
+      shellLine.id = SHELL_ID;
+      shellLine.className = "line site_line__item";
 
       var container = document.createElement("div");
       container.className = "container";
-      mountLine.appendChild(container);
+      container.innerHTML = [
+        '<div id="frat-loader" class="frat-loader frat-loader--initial" aria-hidden="true">',
+        '  <div class="frat-loader__inner">',
+        '    <img class="frat-loader__logo" src="' + LOGO_URL + '" alt="Fraternita">',
+        '    <div class="frat-loader__spinner"></div>',
+        "  </div>",
+        "</div>",
+        '<div id="' + MOUNT_ID + '"></div>'
+      ].join("");
+      shellLine.appendChild(container);
 
       var nativeLine = findNativeDonationLine();
       if (nativeLine && nativeLine.parentNode) {
-        nativeLine.parentNode.insertBefore(mountLine, nativeLine);
-        return mountLine;
+        nativeLine.parentNode.insertBefore(shellLine, nativeLine);
+        return shellLine;
       }
 
-      (document.body || document.documentElement).appendChild(mountLine);
-      return mountLine;
+      (document.body || document.documentElement).appendChild(shellLine);
+      return shellLine;
     }
 
     function mountHtml(markup) {
-      var mount = ensureMount();
-      var container = mount.querySelector(".container") || mount;
-      container.innerHTML = markup;
+      var shell = ensureShell();
+      var mount = shell.querySelector("#" + MOUNT_ID);
+      if (mount) {
+        mount.innerHTML = markup;
+      }
     }
 
     function loadScript() {
@@ -92,6 +140,9 @@
     }
 
     function bootstrap() {
+      applyImmediateState();
+      ensureCriticalStyles();
+      ensureShell();
       ensureStylesheet();
 
       fetch(HTML_URL, { cache: "no-store" })
