@@ -15,6 +15,8 @@
     var SCRIPT_ID = "frat-milano-cdn-script";
     var SHELL_ID = "frat-milano-shell";
     var MOUNT_ID = "frat-milano-app-mount";
+    var stylesheetReadyPromise = null;
+    var bootWatchdogId = null;
 
     function buildAssetUrls() {
       return {
@@ -66,11 +68,11 @@
       var style = document.createElement("style");
       style.id = INLINE_STYLE_ID;
       style.textContent = [
-        "html." + BOOT_CLASS + ",html." + BOOT_CLASS + " body{background:radial-gradient(circle at top left, rgba(237,178,80,.12), transparent 28%),radial-gradient(circle at top right, rgba(35,105,176,.12), transparent 30%),linear-gradient(180deg,#f8fbff 0%,#ffffff 40%,#f8fafc 100%)!important;}",
-        "html." + BOOT_CLASS + " #site-wrapper,html." + BOOT_CLASS + " .poweredBy-wrapper{opacity:0!important;visibility:hidden!important;pointer-events:none!important;}",
+        "html." + BOOT_CLASS + ",html." + BOOT_CLASS + " body{background:linear-gradient(180deg,#f8fbff 0%,#ffffff 42%,#f8fafc 100%)!important;}",
+        "html." + BOOT_CLASS + " #site-wrapper,html." + BOOT_CLASS + " .poweredBy-wrapper{display:none!important;}",
         "body.frat-donation-page{padding:0!important;overflow-x:hidden;background:radial-gradient(circle at top left, rgba(237,178,80,.12), transparent 28%),radial-gradient(circle at top right, rgba(35,105,176,.12), transparent 30%),linear-gradient(180deg,#f8fbff 0%,#ffffff 40%,#f8fafc 100%);}",
         "body.frat-donation-page.frat-is-loading{overflow:hidden;}",
-        "#frat-loader{position:fixed;inset:0;z-index:9999;display:flex;align-items:center;justify-content:center;background:radial-gradient(circle at top left, rgba(237,178,80,.14), transparent 26%),radial-gradient(circle at top right, rgba(35,105,176,.14), transparent 28%),linear-gradient(180deg,rgba(248,251,255,.98) 0%,rgba(255,255,255,.98) 42%,rgba(248,250,252,.98) 100%);}",
+        "#frat-loader{position:fixed;inset:0;z-index:9999;display:flex;align-items:center;justify-content:center;background:linear-gradient(180deg,#f8fbff 0%,#ffffff 42%,#f8fafc 100%);}",
         "#frat-loader .frat-loader__inner{display:grid;justify-items:center;gap:20px;}",
         "#frat-loader .frat-loader__logo{display:block;width:auto;max-width:min(68vw,260px);min-height:40px;max-height:68px;height:auto;}",
         "#frat-loader .frat-loader__spinner{width:34px;height:34px;border-radius:999px;border:3px solid rgba(35,105,176,.14);border-top-color:#2369b0;animation:frat-loader-spin 900ms linear infinite;}",
@@ -110,19 +112,46 @@
     }
 
     function ensureStylesheet() {
-      var existing = document.getElementById(STYLE_ID);
-      if (existing) {
-        if (existing.href !== assetUrls.cssUrl) {
-          existing.href = assetUrls.cssUrl;
-        }
-        return;
+      if (stylesheetReadyPromise) {
+        return stylesheetReadyPromise;
       }
 
-      var link = document.createElement("link");
-      link.id = STYLE_ID;
-      link.rel = "stylesheet";
-      link.href = assetUrls.cssUrl;
-      document.head.appendChild(link);
+      stylesheetReadyPromise = new Promise(function (resolve, reject) {
+        var existing = document.getElementById(STYLE_ID);
+        var link = existing || document.createElement("link");
+
+        function onLoad() {
+          link.dataset.fratLoaded = "1";
+          resolve();
+        }
+
+        function onError() {
+          reject(new Error("Impossibile caricare il CSS Fraternita Milano"));
+        }
+
+        if (link.href !== assetUrls.cssUrl) {
+          link.href = assetUrls.cssUrl;
+        }
+
+        if (link.dataset.fratLoaded === "1") {
+          resolve();
+          return;
+        }
+
+        link.addEventListener("load", onLoad, { once: true });
+        link.addEventListener("error", onError, { once: true });
+
+        if (!existing) {
+          link.id = STYLE_ID;
+          link.rel = "stylesheet";
+          document.head.appendChild(link);
+        }
+      }).catch(function (error) {
+        stylesheetReadyPromise = null;
+        throw error;
+      });
+
+      return stylesheetReadyPromise;
     }
 
     function findNativeDonationLine() {
@@ -136,7 +165,6 @@
 
     function ensureShell() {
       var existing = document.getElementById(SHELL_ID);
-      var loader;
       if (existing) {
         return existing;
       }
@@ -148,10 +176,6 @@
       var container = document.createElement("div");
       container.className = "container";
       container.innerHTML = '<div id="' + MOUNT_ID + '"></div>';
-      loader = ensureImmediateLoader();
-      if (loader && loader.parentNode !== container) {
-        container.insertBefore(loader, container.firstChild);
-      }
       shellLine.appendChild(container);
 
       var nativeLine = findNativeDonationLine();
@@ -197,6 +221,10 @@
 
     function failBoot(error) {
       var loader = document.getElementById("frat-loader");
+      if (bootWatchdogId) {
+        window.clearTimeout(bootWatchdogId);
+        bootWatchdogId = null;
+      }
 
       document.documentElement.classList.remove(BOOT_CLASS);
 
@@ -213,15 +241,26 @@
 
     function bootstrap(markup) {
       ensureShell();
-      ensureStylesheet();
-      mountHtml(markup);
-      loadScript();
-      document.documentElement.classList.remove(BOOT_CLASS);
+      return ensureStylesheet().then(function () {
+        mountHtml(markup);
+        loadScript();
+      });
+    }
+
+    function clearBootWatchdog() {
+      if (bootWatchdogId) {
+        window.clearTimeout(bootWatchdogId);
+        bootWatchdogId = null;
+      }
     }
 
     applyImmediateState();
     ensureCriticalStyles();
     ensureImmediateLoader();
+    document.addEventListener("frat:boot-ready", clearBootWatchdog, { once: true });
+    bootWatchdogId = window.setTimeout(function () {
+      failBoot(new Error("Timeout inizializzazione Fraternita Milano"));
+    }, 10000);
 
     fetch(assetUrls.htmlUrl, { cache: "no-store" })
       .then(function (response) {
@@ -232,7 +271,7 @@
       })
       .then(function (markup) {
         onReady(function () {
-          bootstrap(markup);
+          bootstrap(markup).catch(failBoot);
         });
       })
       .catch(failBoot);

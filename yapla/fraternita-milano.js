@@ -321,6 +321,11 @@
         }
     }
 
+    function clearSnippetBootState() {
+        document.documentElement.classList.remove('frat-booting');
+        document.dispatchEvent(new Event('frat:boot-ready'));
+    }
+
     function query(selector, root) {
         return (root || document).querySelector(selector);
     }
@@ -1648,6 +1653,7 @@
         }
 
         if (!query('#frat-app') || !getNativeLine()) {
+            clearSnippetBootState();
             setInitialLoadingState(false);
             hideInitialLoader();
             return;
@@ -1673,6 +1679,7 @@
             maybeHidePaymentLoader();
         }
 
+        clearSnippetBootState();
         setInitialLoadingState(false);
         hideInitialLoader();
 
