@@ -41,6 +41,7 @@
     var pageFullyLoaded = document.readyState === 'complete';
     var suppressCustomAmountBlurRefresh = false;
     var FORM_CACHE_KEY = getFormCacheKey();
+    var DONOR_CACHE_KEY = getDonorCacheKey();
     var pendingReturnToStepThree = false;
 
     function readSessionFlag(key) {
@@ -68,6 +69,11 @@
         return 'frat_donation_form_cache:' + path;
     }
 
+    function getDonorCacheKey() {
+        var host = window.location.host || 'unknown-host';
+        return 'frat_donation_donor_cache:' + host;
+    }
+
     function readFormCache() {
         try {
             if (!window.localStorage) return null;
@@ -82,6 +88,24 @@
         try {
             if (!window.localStorage) return;
             window.localStorage.setItem(FORM_CACHE_KEY, JSON.stringify(payload));
+        } catch (_error) {
+        }
+    }
+
+    function readDonorCache() {
+        try {
+            if (!window.localStorage) return null;
+            var raw = window.localStorage.getItem(DONOR_CACHE_KEY);
+            return raw ? JSON.parse(raw) : null;
+        } catch (_error) {
+            return null;
+        }
+    }
+
+    function writeDonorCache(payload) {
+        try {
+            if (!window.localStorage) return;
+            window.localStorage.setItem(DONOR_CACHE_KEY, JSON.stringify(payload));
         } catch (_error) {
         }
     }
@@ -105,8 +129,34 @@
         };
     }
 
+    function buildDonorCachePayload() {
+        var first = query('#frat-app #frat-firstname');
+        var last = query('#frat-app #frat-lastname');
+        var email = query('#frat-app #frat-email');
+        var origFirst = originalById('firstname');
+        var origLast = originalById('lastname');
+        var origEmail = originalById('email');
+
+        return {
+            firstname: first && first.value ? first.value : (origFirst ? origFirst.value : ''),
+            lastname: last && last.value ? last.value : (origLast ? origLast.value : ''),
+            email: email && email.value ? email.value : (origEmail ? origEmail.value : '')
+        };
+    }
+
     function persistFormCache() {
         writeFormCache(buildFormCachePayload());
+        persistDonorCache();
+    }
+
+    function persistDonorCache() {
+        var payload = buildDonorCachePayload();
+
+        if (!payload.firstname && !payload.lastname && !payload.email) {
+            return;
+        }
+
+        writeDonorCache(payload);
     }
 
     function restoreFormCache() {
@@ -142,6 +192,21 @@
         }
 
         tipManuallyEdited = cached.tip_manually_edited === true;
+    }
+
+    function restoreDonorCache() {
+        var cached = readDonorCache();
+        var first = query('#frat-app #frat-firstname');
+        var last = query('#frat-app #frat-lastname');
+        var email = query('#frat-app #frat-email');
+
+        if (!cached) {
+            return;
+        }
+
+        if (first && !first.value && typeof cached.firstname === 'string') first.value = cached.firstname;
+        if (last && !last.value && typeof cached.lastname === 'string') last.value = cached.lastname;
+        if (email && !email.value && typeof cached.email === 'string') email.value = cached.email;
     }
 
     function getLoader() {
@@ -1439,6 +1504,7 @@
         }
 
         restoreFormCache();
+        restoreDonorCache();
         syncReceiptType();
         syncAmountChoice();
         syncDonorFields();
@@ -1624,6 +1690,7 @@
             syncAmountChoice();
             syncDonorFields();
             syncPrefilledHiddenFields();
+            persistDonorCache();
             ensureCardPayment();
 
             var originalButton = originalById('external_payment');
